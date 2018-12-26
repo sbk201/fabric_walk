@@ -2,22 +2,24 @@ import * as R from "ramda";
 import {canvas,render} from './canvas.js';
 const {sort, __, lte, converge, path, addIndex, curry, filter, prop, propEq, alwys, cond, equals, is, range, pipe, map, forEach, tap}= R;
 const loop= range(0);
+const log=tap(console.log);
 window.canvas=canvas;
 window.loop=loop;
 const padding=25;
 const offset=50;
 const areaLength=7;
+const getPosition= xy=> (xy-offset)/padding;
 const getRect=([x,y],i)=> new fabric.Rect({
   name:"rect",
   index:i,
-  position:[(x-offset)/padding, (y-offset)/padding],
-  left: x,
-  top: y,
+  positionArray:[getPosition(x), getPosition(y)],
+  position:`${getPosition(x)},${getPosition(y)}`,
+  left: x, top: y,
   fill: 'white',
-  width: 20,
-  height: 20
+  width: 20, height: 20,
+  count: 0
 });
-const path0= path(['position',0])
+const path0= path(['positionArray',0])
 const diff= (a,b)=> path0(a)>path0(b);
 
 const spawnRects=(cols,rows,padding,xoff,yoff)=>
