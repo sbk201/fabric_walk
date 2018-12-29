@@ -1,7 +1,7 @@
 import * as R from "ramda";
 import {canvas,render} from './canvas.js';
 import {rects as rects_,areaLength} from './spawn.js';
-const {last, tail, reduce, sort, __, lte, converge, path, addIndex, curry, filter, prop, propEq, alwys, cond, equals, is, range, pipe, map, forEach, tap}= R;
+const {inc, lensPath, view, over, set:setLens, countBy, last, tail, reduce, sort, __, lte, converge, path, addIndex, curry, filter, prop, propEq, alwys, cond, equals, is, range, pipe, map, forEach, tap}= R;
 const log=tap(console.log);
 const rects=R.splitEvery(areaLength)(rects_);
 const mapIndex=addIndex(map);
@@ -42,16 +42,33 @@ const lineXY= curry((sign, steps, pos)=> pipe(
   // map(validArr),
   // tap(forEach(setRed(rects))),
 )(steps))
-const userInput= [1,2,3,4];
+const userInput= [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2];
 const xyOr= index=> index%2 ===0? "x" :"y";
 const pnOr= index=> (index%4 ===0 || index%4 ===1)? 1 : -1;
 const mapFn= (step,index)=> lineXY( xyOr(index), step* pnOr(index) );
 const reduceFn= (self,lineFn)=> self.concat(lineFn(last(self)))
-const theLines=pipe(
-mapIndex(mapFn),
-reduce(reduceFn,[[3,3]]),tail
-)(userInput);
-console.log(theLines);
+
+const getLines=(function (){
+  const startPoint=[3,3];
+  return pipe(
+  mapIndex(mapFn), reduce(reduceFn,[startPoint]), tail
+  );
+})();
+const addCount= curry((rects,posArr)=>{
+  const adding= (rects, pos)=> {
+    const thePath=lensPath(pos.concat('count'));
+    return over(thePath, inc, rects);
+  };
+  return reduce(adding, rects)(posArr);
+});
+const updateRects= rects=> {
+  return pipe(
+  getLines,
+  addCount(rects),
+  )};
+const result=updateRects(rects)(userInput);
+console.log(result);
+console.log(result[3][3])
 Object.assign(window,{lineXY, setRed, rects, mapIndex});
 const keypress=e=> {
   console.log(e);
