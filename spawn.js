@@ -5,7 +5,7 @@ const loop= range(0);
 const log=tap(console.log);
 window.canvas=canvas;
 window.loop=loop;
-const padding=25;
+const padding=30;
 const offset=50;
 const areaLength=7;
 const getPosition= xy=> (xy-offset)/padding;
@@ -15,9 +15,12 @@ const getRect=([x,y],i)=> new fabric.Rect({
   positionArray:[getPosition(x), getPosition(y)],
   position:`${getPosition(x)},${getPosition(y)}`,
   left: x, top: y,
+  originX: "center", 
+  originY: "center",
   fill: 'white',
   width: 20, height: 20,
-  count: 0
+  count: 0,
+  ani: []
 });
 const path0= path(['positionArray',0])
 const diff= (a,b)=> path0(a)>path0(b);

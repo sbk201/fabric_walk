@@ -1,27 +1,12 @@
 import * as R from "ramda";
 import {canvas,render} from './canvas.js';
 import {rects as rects_,areaLength} from './spawn.js';
-const {inc, lensPath, view, over, set:setLens, countBy, last, tail, reduce, sort, __, lte, converge, path, addIndex, curry, filter, prop, propEq, alwys, cond, equals, is, range, pipe, map, forEach, tap}= R;
+const { compose, always, inc, lensPath, view, over, set:setLens, countBy, last, tail, reduce, sort, __, lte, converge, path, addIndex, curry, filter, prop, propEq, alwys, cond, equals, is, range, pipe, map, forEach, tap}= R;
 const log=tap(console.log);
 const rects=R.splitEvery(areaLength)(rects_);
 const mapIndex=addIndex(map);
-const setRed=curry((rects, [x,y])=> rects[x][y].set('fill','red'))
-// const setPosition= (_x,_y)=> object=> {
-//   const x=cond([
-//     [is(Number), i=>i],
-//     [equals('0'), always(object.left)],
-//     [is(String), x=> parseInt(x)+object.left],
-//     [R.T, x=>{throw `unknown ${x}`}]
-//   ])(_x);
-//   const y=cond([
-//     [is(Number), i=>i],
-//     [equals('0'), always(object.top)],
-//     [is(String), y=> parseInt(y)+object.top],
-//     [i=>1, y=>{throw `unknown ${y}`}]
-//   ])(_y);
-//   object.set({left:x, top:y}); 
-//   return object;
-// }
+const setColor=curry((color, rects, [x,y])=> rects[x][y].set('fill',color))
+
 var error= message=> {
   throw message;
 }
@@ -40,11 +25,10 @@ const lineXY= curry((sign, steps, pos)=> pipe(
   mapIndex(setStep),
   map(addStep(sign)), 
   // map(validArr),
-  // tap(forEach(setRed(rects))),
 )(steps))
 const userInput= [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2];
 const xyOr= index=> index%2 ===0? "x" :"y";
-const pnOr= index=> (index%4 ===0 || index%4 ===1)? 1 : -1;
+const pnOr= index=> (index%4 ===0 || index%4 ===3)? 1 : -1;
 const mapFn= (step,index)=> lineXY( xyOr(index), step* pnOr(index) );
 const reduceFn= (self,lineFn)=> self.concat(lineFn(last(self)))
 
@@ -61,31 +45,81 @@ const addCount= curry((rects,posArr)=>{
   };
   return reduce(adding, rects)(posArr);
 });
+const whichColor= cond([
+  [equals(0), always('white')],
+  [i=> (i-1)%2===0, always('red')],
+  [i=> (i-1)%2===1, always('blue')],
+]);
+const setRectsColor= forEach(forEach(
+  rect=> anim.size(rect, rect.get('scaleX'))
+  ))
+const setRectsColor2= forEach(forEach(
+  rect=> setColor(whichColor(rect.count), rects, rect.positionArray)
+  ))
 const updateRects= rects=> {
   return pipe(
   getLines,
   addCount(rects),
+  setRectsColor,
+  render
   )};
-const result=updateRects(rects)(userInput);
-console.log(result);
-console.log(result[3][3])
-Object.assign(window,{lineXY, setRed, rects, mapIndex});
+// console.log(result);
+// console.log(result[3][3])
+const anim=(function (){
+  const animateSize=(theRect, initX)=>{
+    const initV= theRect.get('scaleX');
+    const fn1= toSize(initV, 1.4, theRect);
+    const fn2= toSize(1.4, 1, theRect);
+    const fn3= ()=>{};
+    const fns=[fn1,fn2,fn3];
+    fn1({index:1, fns});
+    // fn1(()=>fn2(()=>fn3));
+
+    // fn1(fn2)(f);
+    // fn2(f);
+    // fn1([fn2,f]);
+    // const result=fn1();
+    // console.log('result is :',result)
+        
+    // setColor=curry((color, rects, [x,y])
+  }
+  /*
+  next={index:0, fns=[f1,f2,f3]}
+  onComplete:()=>{
+    const {index, fns} = next;
+    fns[index]({index:index+1, fns});
+  }
+  */
+  const toSize= curry((initV, endV, target, next)=>{
+    fabric.util.animate({
+      startValue: initV,
+      endValue: endV,
+      duration: 200,
+      onChange: function(value) {
+        target.scale(value);
+        canvas.renderAll();
+      },
+      onComplete: function() {
+        const {index, fns} = next;
+        fns[index]({index:index+1, fns});
+        // nextFn && nextFn();
+        // if( !is(Array,nextFn) ) console.error("nextFn is not array, ",nextFn);
+        // nextFn[0] && nextFn[0](nextFn.slice(1));
+        // setColor(whichColor(target.count), rects, target.positionArray);
+      }
+    });
+  });
+  return {size:animateSize, }
+})();
 const keypress=e=> {
-  console.log(e);
-  setRed(rects, startPoint);
-  // setPosition("+10","+50")(rects[0]);
-  // rect.set({left:0, top:0})
+  const target=rects[3][3];
+
+  anim.size(target, target.get('scaleX'));
+
   render();
 };
+const result=updateRects(rects)(userInput);
+const onUserInput=updateRects(rects);
 document.querySelector('body').addEventListener('keypress',keypress)
-// forEach(o=>canvas.add(o))(rects);
-// function itemRun(canvas, item ) {
-//   item.animate('left', '+=50', {
-//     duration: 3 * 1000,
-//     onChange: render,
-//     onComplete: function() {
-//       itemRun(canvas, item)
-//     }
-//   })
-// }
-// itemRun(canvas,rect);
+const rect=rects[4][3];
+Object.assign(window,{updateRects,lineXY, rect, rects, mapIndex, onUserInput});
